@@ -1,6 +1,5 @@
 require_relative 'db_connection'
 require 'active_support/inflector'
-require 'byebug'
 # NB: the attr_accessor we wrote in phase 0 is NOT used in the rest
 # of this project. It was only a warm up.
 
@@ -16,9 +15,7 @@ class SQLObject
 
 
 
-    column_sym = columns.first.map(&:to_sym)
-
-    column_sym
+    columns.first.map(&:to_sym)
   end
 
   def self.finalize!
@@ -40,7 +37,12 @@ class SQLObject
   end
 
   def self.all
-
+    DBConnection.execute2(<<-SQL)
+    SELECT
+      *
+    FROM
+      #{table_name}
+    SQL
   end
 
   def self.parse_all(results)
@@ -52,10 +54,10 @@ class SQLObject
   end
 
   def initialize(params = {})
-    self.table_name
-    params.each do |attr_name, value|
-      attr_sym = attr_name.to_sym
-      raise "unknown attribute '#{attr_name}'" unless SQLObject.columns.include?(attr_sym)
+      params.each do |attr_name, value|
+        attr_sym = attr_name.to_sym
+        raise "unknown attribute: '#{attr_name}'" unless Cat::columns.include?(attr_sym)
+        send("#{attr_sym}=".to_sym, value)
     end
   end
 
