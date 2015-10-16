@@ -100,11 +100,8 @@ class SQLObject
 
   def update
     col_names = self.class.columns[1..-1].reverse.join(" = ?, ")
-    # col_names.reverse.join(" = ?, ")
     col_names = col_names + " = ?"
-    p attribute_values.reverse
     DBConnection.execute(<<-SQL, *(attribute_values.reverse))
-    -- here
     UPDATE
        #{self.class.table_name}
     SET

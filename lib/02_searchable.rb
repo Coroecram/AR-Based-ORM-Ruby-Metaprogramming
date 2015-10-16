@@ -2,18 +2,26 @@ require_relative 'db_connection'
 require_relative '01_sql_object'
 
 module Searchable
-  def where(params)
-    DBConnection.execute(<<-SQL)
+  def where(params = {})
+    keys = []
+    params.each do |k, _|
+      keys << k
+    end
+    where_line = keys.join(" = ? AND ") + " = ?"
+    p params.values
+    result = DBConnection.execute(<<-SQL, *params.values)
     SELECT
       *
     FROM
       #{table_name}
     WHERE
-      #{table_name}.id = #{id}
+      #{where_line}
     SQL
+    return result if result.empty?
+    parse_all(result)
   end
 end
 
 class SQLObject
-  # Mixin Searchable here...
+  extend Searchable
 end
