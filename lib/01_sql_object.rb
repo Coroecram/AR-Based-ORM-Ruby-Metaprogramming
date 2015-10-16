@@ -13,8 +13,6 @@ class SQLObject
       #{table_name}
     SQL
 
-
-
     columns.first.map(&:to_sym)
   end
 
@@ -37,26 +35,42 @@ class SQLObject
   end
 
   def self.all
-    DBConnection.execute2(<<-SQL)
+    results = DBConnection.execute(<<-SQL)
     SELECT
       *
     FROM
       #{table_name}
     SQL
+    parse_all(results)
   end
 
   def self.parse_all(results)
-    # ...
+    new_instances = []
+    species = results[0].include?("owner_id") ? Cat : Human
+    results.each do |entry|
+      new_instances << species.new(entry)
+    end
+    new_instances
   end
 
   def self.find(id)
-    # ...
+    result = DBConnection.execute(<<-SQL)
+    SELECT
+      *
+    FROM
+      #{table_name}
+    WHERE
+      #{table_name}.id = #{id}
+    SQL
+
+    return nil if result.empty?
+    parse_all(result).first
   end
 
   def initialize(params = {})
       params.each do |attr_name, value|
         attr_sym = attr_name.to_sym
-        raise "unknown attribute: '#{attr_name}'" unless Cat::columns.include?(attr_sym)
+        raise "unknown attribute: '#{attr_name}'" unless self.class::columns.include?(attr_sym)
         send("#{attr_sym}=".to_sym, value)
     end
   end
