@@ -44,12 +44,7 @@ class SQLObject
   end
 
   def self.parse_all(results)
-    new_instances = []
-    species = results[0].include?("owner_id") ? Cat : Human
-    results.each do |entry|
-      new_instances << species.new(entry)
-    end
-    new_instances
+    results.map { |result| self.new(result) }
   end
 
   def self.find(id)
