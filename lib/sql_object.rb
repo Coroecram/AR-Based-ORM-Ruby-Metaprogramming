@@ -67,10 +67,13 @@ class SQLObject
   end
 
   def initialize(params = {})
-      params.each do |attr_name, value|
-        attr_sym = attr_name.to_sym
-        raise "unknown attribute: '#{attr_name}'" unless self.class::columns.include?(attr_sym)
-        send("#{attr_sym}=".to_sym, value)
+    params.each do |attr_name, value|
+      attr_name = attr_name.to_sym
+      if self.class.columns.include?(attr_name)
+        self.send("#{attr_name}=", value)
+      else
+        raise "unknown attribute '#{attr_name}'"
+      end
     end
   end
 
@@ -79,11 +82,12 @@ class SQLObject
   end
 
   def attribute_values
-    values = self.class.columns.map { |col| self.send(col) }
+    self.class.columns.map { |attar| self.send(attr) }
   end
 
   def insert
-    col_names = self.class.columns.drop(1).join(", ")
+    columns = self.class.columns.drop(1)
+    col_names = columns.map(&:to_s).join(", ")
     question_marks = (["?"] * col_names.count).join(", ")
     DBConnection.execute(<<-SQL, *attribute_values.drop(1))
     INSERT INTO #{self.class.table_name}
