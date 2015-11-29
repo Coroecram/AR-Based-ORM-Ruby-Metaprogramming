@@ -5,18 +5,18 @@ require 'byebug'
 class SQLObject
 
   def self.columns
-    columns = DBConnection.execute2(<<-SQL)
+    columns = DBConnection.execute2(<<-SQL).first
     SELECT
       *
     FROM
       #{table_name}
     SQL
 
-    columns.first.map(&:to_sym)
+    @columns = columns.map!(&:to_sym)
   end
 
   def self.finalize!
-    columns.each do |column_name|
+    self.columns.each do |column_name|
       define_method("#{column_name}=".to_sym) do |value|
         attributes[column_name] = value
       end
@@ -30,7 +30,7 @@ class SQLObject
   end
 
   def self.table_name
-    @table_name || self.to_s.downcase.pluralize
+    @table_name || self.name.underscore.pluralize
   end
 
   def self.all
@@ -53,13 +53,13 @@ class SQLObject
   end
 
   def self.find(id)
-    result = DBConnection.execute(<<-SQL)
+    result = DBConnection.execute(<<-SQL, id)
     SELECT
       *
     FROM
       #{table_name}
     WHERE
-      #{table_name}.id = #{id}
+      #{table_name}.id = ?
     SQL
 
     return nil if result.empty?
