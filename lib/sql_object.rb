@@ -79,15 +79,13 @@ class SQLObject
   end
 
   def attribute_values
-    values = self.class.columns.map { |symbol| send(symbol) }
+    values = self.class.columns.map { |col| self.send(col) }
   end
 
   def insert
-    col_names = self.class.columns[1..-1].join(", ")
-    question_marks = []
-    insert_length = attribute_values.length
-    (insert_length-1).times { question_marks << "?" }
-    DBConnection.execute(<<-SQL, *attribute_values[1..-1])
+    col_names = self.class.columns.drop(1).join(", ")
+    question_marks = (["?"] * col_names.count).join(", ")
+    DBConnection.execute(<<-SQL, *attribute_values.drop(1))
     INSERT INTO #{self.class.table_name}
       (#{col_names})
     VALUES
@@ -97,7 +95,7 @@ class SQLObject
   end
 
   def update
-    col_names = self.class.columns[1..-1].reverse.join(" = ?, ")
+    col_names = self.class.columns.drop(1).reverse.join(" = ?, ")
     col_names = col_names + " = ?"
     DBConnection.execute(<<-SQL, *(attribute_values.reverse))
     UPDATE
@@ -110,10 +108,6 @@ class SQLObject
   end
 
   def save
-    if self.id.nil?
-      self.insert
-    else
-      self.update
-    end
+    self.id.nil? ? insert : update
   end
 end
