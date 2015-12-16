@@ -3,7 +3,20 @@ require 'active_support/inflector'
 
 class SQLObject
 
+  def initialize(params = {})
+    params.each do |attr_name, value|
+      attr_name = attr_name.to_sym
+      if self.class.columns.include?(attr_name)
+        self.send("#{attr_name}=", value)
+      else
+        raise "unknown attribute '#{attr_name}'"
+      end
+    end
+  end
+
   def self.columns
+    return @columns if @columns
+
     columns = DBConnection.execute2(<<-SQL).first
     SELECT
       *
@@ -29,7 +42,7 @@ class SQLObject
   end
 
   def self.table_name
-    @table_name || self.name.underscore.pluralize
+    @table_name ||= self.name.underscore.pluralize
   end
 
   def self.all
@@ -58,17 +71,6 @@ class SQLObject
 
     return nil if result.empty?
     parse_all(result).first
-  end
-
-  def initialize(params = {})
-    params.each do |attr_name, value|
-      attr_name = attr_name.to_sym
-      if self.class.columns.include?(attr_name)
-        self.send("#{attr_name}=", value)
-      else
-        raise "unknown attribute '#{attr_name}'"
-      end
-    end
   end
 
   def attributes
